@@ -62,10 +62,14 @@ export function runMigrations() {
       asset_id INTEGER,
       category TEXT,
       manual_amount REAL DEFAULT 0,
+      group_key TEXT,
       FOREIGN KEY (goal_id) REFERENCES goals(id) ON DELETE CASCADE,
       FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
     );
   `);
+
+  // Add group_key column for existing DBs (safe — ignored if already present)
+  try { db.execSync(`ALTER TABLE goal_links ADD COLUMN group_key TEXT`); } catch { /* already exists */ }
 
   // Essentials table
   db.execSync(`

@@ -21,14 +21,14 @@ export function GoalsMiniList({ goals }: { goals: GoalWithProgress[] }) {
         <Text style={{ fontSize: theme.fontSize.md, fontWeight: theme.fontWeight.semibold, color: theme.colors.text }}>
           Goals
         </Text>
-        <TouchableOpacity onPress={() => router.push('/(tabs)/goals')}>
+        <TouchableOpacity onPress={() => router.navigate('/(tabs)/goals' as any)}>
           <Text style={{ fontSize: theme.fontSize.sm, color: theme.colors.primary, fontWeight: theme.fontWeight.medium }}>
             View all →
           </Text>
         </TouchableOpacity>
       </View>
       {top3.length === 0 ? (
-        <TouchableOpacity onPress={() => router.push('/(tabs)/goals/add')}
+        <TouchableOpacity onPress={() => router.navigate('/(tabs)/goals/add' as any)}
           style={{
             backgroundColor: theme.colors.surface, borderRadius: 14,
             padding: 16, alignItems: 'center', borderWidth: 1,
@@ -38,7 +38,7 @@ export function GoalsMiniList({ goals }: { goals: GoalWithProgress[] }) {
         </TouchableOpacity>
       ) : (
         top3.map(({ goal, progress }) => (
-          <TouchableOpacity key={goal.id} onPress={() => router.push(`/(tabs)/goals/${goal.id}`)} activeOpacity={0.8}>
+          <TouchableOpacity key={goal.id} onPress={() => router.navigate(`/(tabs)/goals/${goal.id}` as any)} activeOpacity={0.8}>
             <View style={{
               backgroundColor: theme.colors.surface, borderRadius: 12,
               padding: 12, marginBottom: 8, borderWidth: 1, borderColor: theme.colors.border,

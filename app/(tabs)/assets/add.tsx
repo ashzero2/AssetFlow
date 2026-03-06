@@ -91,7 +91,10 @@ export default function AddAssetScreen() {
     const e: Record<string, string> = {};
     if (!name.trim()) e.name = 'Name is required';
     if (!type) e.type = 'Type is required';
-    if (!currentPrice) e.currentPrice = 'Current value is required';
+    // For linked lots, current price is hidden — inherited from the group automatically
+    if (!linkedGroup && !editing && !currentPrice) e.currentPrice = 'Current value is required';
+    // Edit mode always requires current price
+    if (editing && !currentPrice) e.currentPrice = 'Current value is required';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -100,10 +103,14 @@ export default function AddAssetScreen() {
     if (!validate()) return;
     const unitsNum = parseFloat(units) || 0;
     const buyPriceNum = parseFloat(buyPrice) || 0;
-    const currentPriceNum = parseFloat(currentPrice) || 0;
-    const currentValue = unitsNum > 0 ? unitsNum * currentPriceNum : currentPriceNum;
 
-    // If this is a linked lot, enforce the canonical ticker so group key stays consistent
+    const isLinkedLot = !!linkedGroup && !editing;
+
+    // For linked lots: use buy price as placeholder — will be overwritten below
+    const currentPriceNum = isLinkedLot
+      ? buyPriceNum
+      : (parseFloat(currentPrice) || 0);
+    const currentValue = unitsNum > 0 ? unitsNum * currentPriceNum : currentPriceNum;
     const finalTicker = linkedGroup ? linkedGroup.canonicalTicker : ticker;
 
     if (editing) {
@@ -120,9 +127,10 @@ export default function AddAssetScreen() {
         currency: 'INR', notes,
       });
 
-      // If linked to an existing group, propagate the new price to ALL lots
-      if (linkedGroup && currentPriceNum > 0) {
-        updateGroupPrice(linkedGroup.key, linkedGroup.isTicker, currentPriceNum);
+      // The buy price of the new lot IS the current market price —
+      // sync ALL lots in the group to this new price.
+      if (isLinkedLot && buyPriceNum > 0) {
+        updateGroupPrice(linkedGroup!.key, linkedGroup!.isTicker, buyPriceNum);
       }
     }
     router.back();
@@ -286,27 +294,39 @@ export default function AddAssetScreen() {
             </View>
           </View>
 
-          <AmountInput
-            label={linkedGroup ? 'Current Price / Unit *' : 'Current Price / Total Value *'}
-            value={currentPrice}
-            onChangeText={setCurrentPrice}
-            error={errors.currentPrice}
-          />
-          {linkedGroup && linkedLotCount > 0 && currentPrice && parseFloat(currentPrice) > 0 && (
-            <Text style={{
-              color: theme.colors.textSecondary, fontSize: theme.fontSize.xs,
-              marginTop: -8, marginBottom: 16,
+          {/* Current price — hidden for linked lots (auto-synced from group) */}
+          {(!linkedGroup || editing) ? (
+            <>
+              <AmountInput
+                label={editing ? 'Current Price / Unit *' : 'Current Price / Total Value *'}
+                value={currentPrice}
+                onChangeText={setCurrentPrice}
+                error={errors.currentPrice}
+              />
+              {!linkedGroup && !editing && units && currentPrice && parseFloat(units) > 0 && (
+                <Text style={{
+                  color: theme.colors.primary, fontSize: theme.fontSize.sm,
+                  marginTop: -8, marginBottom: 16,
+                }}>
+                  Total value: ₹{(parseFloat(units) * parseFloat(currentPrice)).toLocaleString('en-IN')}
+                </Text>
+              )}
+            </>
+          ) : (
+            <View style={{
+              flexDirection: 'row', alignItems: 'center', gap: 8,
+              backgroundColor: `${theme.colors.primary}12`,
+              borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 16,
             }}>
-              ₹{parseFloat(currentPrice).toLocaleString('en-IN')} will be applied to all {linkedLotCount} lot{linkedLotCount !== 1 ? 's' : ''} of {name}
-            </Text>
-          )}
-          {!linkedGroup && units && currentPrice && parseFloat(units) > 0 && (
-            <Text style={{
-              color: theme.colors.primary, fontSize: theme.fontSize.sm,
-              marginTop: -8, marginBottom: 16,
-            }}>
-              Total value: ₹{(parseFloat(units) * parseFloat(currentPrice)).toLocaleString('en-IN')}
-            </Text>
+              <Ionicons name="sync-outline" size={15} color={theme.colors.primary} />
+              <Text style={{ flex: 1, fontSize: theme.fontSize.xs, color: theme.colors.primary, lineHeight: 18 }}>
+                Your buy price will become the new current price for{' '}
+                <Text style={{ fontWeight: theme.fontWeight.semibold }}>all {linkedLotCount} lot{linkedLotCount !== 1 ? 's' : ''}</Text>
+                {buyPrice && parseFloat(buyPrice) > 0
+                  ? ` · ₹${parseFloat(buyPrice).toLocaleString('en-IN')}/unit`
+                  : ''}
+              </Text>
+            </View>
           )}
 
           <FormTextInput
@@ -323,5 +343,4 @@ export default function AddAssetScreen() {
     </SafeAreaView>
   );
 }
-
 

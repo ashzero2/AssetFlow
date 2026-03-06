@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../src/theme';
 import { Platform, TouchableOpacity, View } from 'react-native';
@@ -8,6 +8,17 @@ import { DrawerMenu } from '../../src/components/ui/DrawerMenu';
 export default function TabsLayout() {
   const { theme } = useTheme();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const router = useRouter();
+
+  // Wraps a tab button so tapping it always navigates to the tab's index,
+  // resetting any nested stack (e.g. [id] screens) rather than resuming it.
+  const resetTabButton = (indexRoute: string) => (props: any) => (
+    <TouchableOpacity
+      {...props}
+      onPress={() => router.navigate(indexRoute as any)}
+      style={[props.style, { alignItems: 'center', justifyContent: 'center' }]}
+    />
+  );
 
   return (
     <>
@@ -46,6 +57,7 @@ export default function TabsLayout() {
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="trending-up-outline" size={size} color={color} />
             ),
+            tabBarButton: resetTabButton('/(tabs)/assets'),
           }}
         />
         <Tabs.Screen
@@ -55,6 +67,7 @@ export default function TabsLayout() {
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="swap-vertical-outline" size={size} color={color} />
             ),
+            tabBarButton: resetTabButton('/(tabs)/transactions'),
           }}
         />
         <Tabs.Screen
@@ -64,6 +77,7 @@ export default function TabsLayout() {
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="flag-outline" size={size} color={color} />
             ),
+            tabBarButton: resetTabButton('/(tabs)/goals'),
           }}
         />
 

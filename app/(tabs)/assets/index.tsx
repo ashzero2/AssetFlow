@@ -5,15 +5,17 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../src/theme';
 import { useAssetsStore } from '../../../src/store/useAssetsStore';
-import { AssetCard } from '../../../src/components/assets/AssetCard';
+import { AssetGroupCard } from '../../../src/components/assets/AssetGroupCard';
 import { EmptyState } from '../../../src/components/ui/EmptyState';
 import { formatCurrencyCompact } from '../../../src/utils/currency';
 import { ASSET_TYPES, AssetType } from '../../../src/constants/assetTypes';
+import { groupAssets } from '../../../src/utils/calculations';
 
 export default function AssetsScreen() {
   const { theme } = useTheme();
   const router = useRouter();
   const assets = useAssetsStore(s => s.assets);
+  const updateGroupPrice = useAssetsStore(s => s.updateGroupPrice);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<AssetType | 'ALL'>('ALL');
 
@@ -24,6 +26,7 @@ export default function AssetsScreen() {
     return matchSearch && matchType;
   });
 
+  const groups = groupAssets(filtered);
   const totalValue = assets.reduce((s, a) => s + a.current_value, 0);
 
   return (
@@ -83,19 +86,13 @@ export default function AssetsScreen() {
               onPress={() => setFilterType(item.value as AssetType | 'ALL')}
               activeOpacity={0.75}
               style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                alignSelf: 'flex-start',
-                gap: 5,
-                paddingHorizontal: 12,
-                paddingVertical: 7,
-                borderRadius: 99,
+                flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start',
+                gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 99,
                 backgroundColor: isActive ? theme.colors.primary : theme.colors.surfaceAlt,
               }}>
               <Text style={{ fontSize: 12, lineHeight: 16 }}>{item.icon}</Text>
               <Text style={{
-                fontSize: theme.fontSize.sm,
-                lineHeight: 16,
+                fontSize: theme.fontSize.sm, lineHeight: 16,
                 color: isActive ? theme.colors.textInverse : theme.colors.textSecondary,
                 fontWeight: theme.fontWeight.semibold,
               }}>{item.label}</Text>
@@ -104,10 +101,10 @@ export default function AssetsScreen() {
         }}
       />
 
-      {/* Assets list */}
+      {/* Grouped assets list */}
       <FlatList
-        data={filtered}
-        keyExtractor={item => String(item.id)}
+        data={groups}
+        keyExtractor={item => item.groupKey}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
         ListEmptyComponent={
           <EmptyState
@@ -118,21 +115,16 @@ export default function AssetsScreen() {
             onAction={() => router.push('/(tabs)/assets/add')}
           />
         }
-        renderItem={({ item }) => {
-          const groupKey = item.ticker?.trim().toUpperCase() || item.name.trim().toLowerCase();
-          const lotsCount = assets.filter(a =>
-            (a.ticker?.trim().toUpperCase() || a.name.trim().toLowerCase()) === groupKey
-          ).length;
-          return (
-            <AssetCard
-              asset={item}
-              lotsCount={lotsCount}
-              onPress={() => router.push(`/(tabs)/assets/${item.id}`)}
-            />
-          );
-        }}
+        renderItem={({ item }) => (
+          <AssetGroupCard
+            group={item}
+            onLotPress={(id) => router.push(`/(tabs)/assets/${id}`)}
+            onUpdateGroupPrice={(groupKey, isTicker, newPrice) =>
+              updateGroupPrice(groupKey, isTicker, newPrice)
+            }
+          />
+        )}
       />
     </SafeAreaView>
   );
 }
-

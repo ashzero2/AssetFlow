@@ -1,10 +1,72 @@
 import { Asset } from '../db/queries/assets';
 import { Transaction } from '../db/queries/transactions';
 import { Goal, GoalLink } from '../db/queries/goals';
+import { AssetType } from '../constants/assetTypes';
 
 export function computeNetWorth(assets: Asset[]): number {
   return assets.reduce((sum, a) => sum + (a.current_value ?? 0), 0);
 }
+
+// ─── Asset Grouping ──────────────────────────────────────────────────────────
+
+export interface AssetGroup {
+  groupKey: string;
+  name: string;
+  type: AssetType;
+  ticker?: string;
+  lots: Asset[];
+  totalUnits: number;
+  avgBuyPrice: number;      // weighted: Σ(units × buyPrice) / Σ(units)
+  currentPrice: number;
+  totalCurrentValue: number;
+  totalInvested: number;    // Σ(units × buyPrice)
+  pnlAmount: number;
+  pnlPercent: number;
+}
+
+export function getGroupKey(asset: Asset): string {
+  return asset.ticker?.trim() ? asset.ticker.trim().toUpperCase() : asset.name.trim().toLowerCase();
+}
+
+export function groupAssets(assets: Asset[]): AssetGroup[] {
+  const map = new Map<string, Asset[]>();
+  for (const a of assets) {
+    const key = getGroupKey(a);
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(a);
+  }
+
+  const groups: AssetGroup[] = [];
+  for (const [groupKey, lots] of map.entries()) {
+    const representative = lots[0];
+    const totalUnits = lots.reduce((s, a) => s + a.units, 0);
+    const totalInvested = lots.reduce((s, a) => s + a.units * a.buy_price, 0);
+    const totalCurrentValue = lots.reduce((s, a) => s + a.current_value, 0);
+    const avgBuyPrice = totalUnits > 0 ? totalInvested / totalUnits : 0;
+    const currentPrice = representative.current_price;
+    const pnlAmount = totalCurrentValue - totalInvested;
+    const pnlPercent = totalInvested > 0 ? (pnlAmount / totalInvested) * 100 : 0;
+
+    groups.push({
+      groupKey,
+      name: representative.name,
+      type: representative.type,
+      ticker: representative.ticker,
+      lots,
+      totalUnits,
+      avgBuyPrice,
+      currentPrice,
+      totalCurrentValue,
+      totalInvested,
+      pnlAmount,
+      pnlPercent,
+    });
+  }
+
+  return groups.sort((a, b) => b.totalCurrentValue - a.totalCurrentValue);
+}
+
+// ─── Goal Progress ───────────────────────────────────────────────────────────
 
 export function computeGoalProgress(
   goal: Goal,
@@ -18,6 +80,11 @@ export function computeGoalProgress(
     if (link.link_type === 'ASSET' && link.asset_id) {
       const asset = assets.find(a => a.id === link.asset_id);
       if (asset) saved += asset.current_value ?? 0;
+    } else if (link.link_type === 'ASSET_GROUP' && link.group_key) {
+      // Sum current_value of ALL assets whose groupKey matches — new lots auto-count
+      saved += assets
+        .filter(a => getGroupKey(a) === link.group_key)
+        .reduce((s, a) => s + (a.current_value ?? 0), 0);
     } else if (link.link_type === 'TRANSACTION_CATEGORY' && link.category) {
       const total = transactions
         .filter(t => t.category === link.category && t.type === 'INCOME')

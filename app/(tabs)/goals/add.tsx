@@ -46,7 +46,8 @@ export default function AddGoalScreen() {
     } else {
       addGoal({ name, target_amount: parseFloat(targetAmount), deadline: deadline || undefined, color, icon, notes });
     }
-    router.back();
+    // Always land on the goals list, regardless of where we came from
+    router.navigate('/(tabs)/goals' as any);
   };
 
   return (
@@ -56,7 +57,7 @@ export default function AddGoalScreen() {
           flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16,
           paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.colors.border,
         }}>
-          <IconButton name="arrow-back" onPress={() => router.back()} />
+          <IconButton name="arrow-back" onPress={() => router.navigate('/(tabs)/goals' as any)} />
           <Text style={{
             flex: 1, textAlign: 'center',
             fontSize: theme.fontSize.lg, fontWeight: theme.fontWeight.semibold, color: theme.colors.text,

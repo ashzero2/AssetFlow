@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../src/theme';
 import { useGoalsStore } from '../../../src/store/useGoalsStore';
@@ -16,9 +17,17 @@ export default function GoalsScreen() {
   const router = useRouter();
   const goals = useGoalsStore(s => s.goals);
   const links = useGoalsStore(s => s.links);
+  const loadGoals = useGoalsStore(s => s.load);
   const loadLinks = useGoalsStore(s => s.loadLinks);
   const assets = useAssetsStore(s => s.assets);
   const transactions = useTransactionsStore(s => s.transactions);
+
+  // Reload goals every time this screen is focused (e.g. after adding from dashboard)
+  useFocusEffect(
+    React.useCallback(() => {
+      loadGoals();
+    }, [])
+  );
 
   useEffect(() => {
     goals.forEach(g => loadLinks(g.id));

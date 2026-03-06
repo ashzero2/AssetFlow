@@ -4,17 +4,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Svg, { Circle } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../src/theme';
 import { useGoalsStore } from '../../../src/store/useGoalsStore';
 import { useAssetsStore } from '../../../src/store/useAssetsStore';
 import { useTransactionsStore } from '../../../src/store/useTransactionsStore';
 import { IconButton } from '../../../src/components/ui/IconButton';
 import { Card } from '../../../src/components/ui/Card';
-import { Button } from '../../../src/components/ui/Button';
 import { LinkAssetSheet } from '../../../src/components/goals/LinkAssetSheet';
 import { formatCurrency } from '../../../src/utils/currency';
 import { formatDate, getDaysUntil } from '../../../src/utils/date';
-import { computeGoalProgress } from '../../../src/utils/calculations';
+import { computeGoalProgress, groupAssets, getGroupKey } from '../../../src/utils/calculations';
 
 export default function GoalDetailScreen() {
   const { theme } = useTheme();
@@ -56,12 +56,14 @@ export default function GoalDetailScreen() {
   const strokeDashoffset = circumference - (clampedProgress / 100) * circumference;
 
   const linkedAssetIds = goalLinks.filter(l => l.link_type === 'ASSET' && l.asset_id).map(l => l.asset_id!);
+  const linkedGroupKeys = goalLinks.filter(l => l.link_type === 'ASSET_GROUP' && l.group_key).map(l => l.group_key!);
   const linkedCategories = goalLinks.filter(l => l.link_type === 'TRANSACTION_CATEGORY' && l.category).map(l => l.category!);
+  const assetGroups = groupAssets(assets);
 
   const handleDelete = () => {
     Alert.alert('Delete Goal', `Remove "${goal.name}"?`, [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => { removeGoal(goal.id); router.back(); } },
+      { text: 'Delete', style: 'destructive', onPress: () => { removeGoal(goal.id); router.navigate('/(tabs)/goals' as any); } },
     ]);
   };
 
@@ -71,7 +73,7 @@ export default function GoalDetailScreen() {
         flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16,
         paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.colors.border,
       }}>
-        <IconButton name="arrow-back" onPress={() => router.back()} />
+        <IconButton name="arrow-back" onPress={() => router.navigate('/(tabs)/goals' as any)} />
         <Text style={{ flex: 1, textAlign: 'center', fontSize: theme.fontSize.lg, fontWeight: theme.fontWeight.semibold, color: theme.colors.text }}>
           Goal Details
         </Text>
@@ -142,6 +144,25 @@ export default function GoalDetailScreen() {
                   </View>
                 ) : null;
               }
+              if (link.link_type === 'ASSET_GROUP' && link.group_key) {
+                const groupLots = assets.filter(a => getGroupKey(a) === link.group_key);
+                const groupValue = groupLots.reduce((s, a) => s + (a.current_value ?? 0), 0);
+                const groupName = groupLots[0]?.name ?? link.group_key;
+                return (
+                  <View key={link.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
+                    <Ionicons name="layers-outline" size={16} color={theme.colors.primary} style={{ marginRight: 8 }} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: theme.colors.text, fontSize: theme.fontSize.sm, fontWeight: theme.fontWeight.medium }}>{groupName}</Text>
+                      <Text style={{ color: theme.colors.textSecondary, fontSize: theme.fontSize.xs }}>
+                        {groupLots.length} lot{groupLots.length !== 1 ? 's' : ''} · auto-tracked
+                      </Text>
+                    </View>
+                    <Text style={{ color: theme.colors.primary, fontSize: theme.fontSize.sm, fontWeight: theme.fontWeight.semibold }}>
+                      {formatCurrency(groupValue)}
+                    </Text>
+                  </View>
+                );
+              }
               if (link.link_type === 'TRANSACTION_CATEGORY') {
                 return (
                   <View key={link.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
@@ -165,11 +186,18 @@ export default function GoalDetailScreen() {
         visible={sheetOpen}
         onClose={() => setSheetOpen(false)}
         assets={assets}
+        assetGroups={assetGroups}
         linkedAssetIds={linkedAssetIds}
+        linkedGroupKeys={linkedGroupKeys}
         linkedCategories={linkedCategories}
         onLinkAsset={(assetId) => addLink({ goal_id: goal.id, link_type: 'ASSET', asset_id: assetId })}
         onUnlinkAsset={(assetId) => {
           const link = goalLinks.find(l => l.link_type === 'ASSET' && l.asset_id === assetId);
+          if (link) removeLink(link.id, goal.id);
+        }}
+        onLinkGroup={(groupKey) => addLink({ goal_id: goal.id, link_type: 'ASSET_GROUP', group_key: groupKey })}
+        onUnlinkGroup={(groupKey) => {
+          const link = goalLinks.find(l => l.link_type === 'ASSET_GROUP' && l.group_key === groupKey);
           if (link) removeLink(link.id, goal.id);
         }}
         onLinkCategory={(cat) => addLink({ goal_id: goal.id, link_type: 'TRANSACTION_CATEGORY', category: cat })}

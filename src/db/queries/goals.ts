@@ -15,10 +15,11 @@ export interface Goal {
 export interface GoalLink {
   id: number;
   goal_id: number;
-  link_type: 'ASSET' | 'TRANSACTION_CATEGORY' | 'MANUAL';
+  link_type: 'ASSET' | 'TRANSACTION_CATEGORY' | 'MANUAL' | 'ASSET_GROUP';
   asset_id?: number;
   category?: string;
   manual_amount?: number;
+  group_key?: string;
 }
 
 export type NewGoal = Omit<Goal, 'id' | 'created_at'>;
@@ -70,9 +71,9 @@ export function getGoalLinks(goalId: number): GoalLink[] {
 export function insertGoalLink(link: NewGoalLink): number {
   const db = getDb();
   const result = db.runSync(
-    `INSERT INTO goal_links (goal_id, link_type, asset_id, category, manual_amount)
-     VALUES (?, ?, ?, ?, ?)`,
-    [link.goal_id, link.link_type, link.asset_id ?? null, link.category ?? null, link.manual_amount ?? 0]
+    `INSERT INTO goal_links (goal_id, link_type, asset_id, category, manual_amount, group_key)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [link.goal_id, link.link_type, link.asset_id ?? null, link.category ?? null, link.manual_amount ?? 0, link.group_key ?? null]
   );
   return result.lastInsertRowId;
 }
