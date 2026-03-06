@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Asset } from '../../db/queries/assets';
 import { useTheme } from '../../theme';
 import { formatCurrency, formatPercentage } from '../../utils/currency';
@@ -9,9 +10,10 @@ import { computePnL } from '../../utils/calculations';
 interface AssetCardProps {
   asset: Asset;
   onPress: () => void;
+  lotsCount?: number;
 }
 
-export function AssetCard({ asset, onPress }: AssetCardProps) {
+export function AssetCard({ asset, onPress, lotsCount = 1 }: AssetCardProps) {
   const { theme } = useTheme();
   const { pnlAmount, pnlPercent } = computePnL(asset.buy_price, asset.current_price, asset.units);
   const typeColor = ASSET_TYPE_COLORS[asset.type] ?? theme.colors.primary;
@@ -53,11 +55,25 @@ export function AssetCard({ asset, onPress }: AssetCardProps) {
             fontSize: theme.fontSize.md, fontWeight: theme.fontWeight.semibold,
             color: theme.colors.text, marginBottom: 2,
           }} numberOfLines={1}>{asset.name}</Text>
-          {asset.ticker && (
-            <Text style={{ fontSize: theme.fontSize.xs, color: theme.colors.textSecondary }}>
-              {asset.ticker} · {asset.units} units
-            </Text>
-          )}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            {asset.ticker && (
+              <Text style={{ fontSize: theme.fontSize.xs, color: theme.colors.textSecondary }}>
+                {asset.ticker} · {asset.units} units
+              </Text>
+            )}
+            {lotsCount > 1 && (
+              <View style={{
+                flexDirection: 'row', alignItems: 'center', gap: 3,
+                backgroundColor: theme.colors.surfaceAlt,
+                borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2,
+              }}>
+                <Ionicons name="layers-outline" size={10} color={theme.colors.textSecondary} />
+                <Text style={{ fontSize: 10, color: theme.colors.textSecondary, fontWeight: theme.fontWeight.medium }}>
+                  {lotsCount} lots
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
 
         {/* Value & P&L */}

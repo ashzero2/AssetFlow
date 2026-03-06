@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, AppState } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -55,7 +55,7 @@ export default function DashboardScreen() {
             </Text>
           </View>
           <TouchableOpacity
-            onPress={() => router.push('/(tabs)/transactions/add')}
+            onPress={() => router.navigate('/(tabs)/transactions/add' as any)}
             style={{
               width: 42, height: 42, borderRadius: 12,
               backgroundColor: theme.colors.primary,

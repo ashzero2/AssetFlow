@@ -118,9 +118,19 @@ export default function AssetsScreen() {
             onAction={() => router.push('/(tabs)/assets/add')}
           />
         }
-        renderItem={({ item }) => (
-          <AssetCard asset={item} onPress={() => router.push(`/(tabs)/assets/${item.id}`)} />
-        )}
+        renderItem={({ item }) => {
+          const groupKey = item.ticker?.trim().toUpperCase() || item.name.trim().toLowerCase();
+          const lotsCount = assets.filter(a =>
+            (a.ticker?.trim().toUpperCase() || a.name.trim().toLowerCase()) === groupKey
+          ).length;
+          return (
+            <AssetCard
+              asset={item}
+              lotsCount={lotsCount}
+              onPress={() => router.push(`/(tabs)/assets/${item.id}`)}
+            />
+          );
+        }}
       />
     </SafeAreaView>
   );

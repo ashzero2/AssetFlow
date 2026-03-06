@@ -93,5 +93,13 @@ export function runMigrations() {
       total_liabilities REAL DEFAULT 0
     );
   `);
+
+  // Settings table (key-value store for user preferences)
+  db.execSync(`
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
+  `);
 }
 

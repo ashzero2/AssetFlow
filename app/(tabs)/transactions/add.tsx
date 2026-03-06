@@ -17,6 +17,7 @@ import { todayISO } from '../../../src/utils/date';
 export default function AddTransactionScreen() {
   const { theme } = useTheme();
   const router = useRouter();
+  const goToTransactions = () => router.navigate('/(tabs)/transactions' as any);
   const { edit } = useLocalSearchParams<{ edit?: string }>();
   const transactions = useTransactionsStore(s => s.transactions);
   const addTransaction = useTransactionsStore(s => s.add);
@@ -49,13 +50,13 @@ export default function AddTransactionScreen() {
     } else {
       addTransaction({ type: txType, amount: parseFloat(amount), category: category as any, description, date });
     }
-    router.back();
+    goToTransactions();
   };
 
   const handleDelete = () => {
     Alert.alert('Delete Transaction', 'Remove this transaction?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => { removeTransaction(editing!.id); router.back(); } },
+      { text: 'Delete', style: 'destructive', onPress: () => { removeTransaction(editing!.id); goToTransactions(); } },
     ]);
   };
 
@@ -67,7 +68,7 @@ export default function AddTransactionScreen() {
           flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16,
           paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.colors.border,
         }}>
-          <IconButton name="arrow-back" onPress={() => router.back()} />
+          <IconButton name="arrow-back" onPress={goToTransactions} />
           <Text style={{
             flex: 1, textAlign: 'center',
             fontSize: theme.fontSize.lg, fontWeight: theme.fontWeight.semibold,

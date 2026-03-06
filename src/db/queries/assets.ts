@@ -1,5 +1,5 @@
 import { getDb } from '../client';
-import { nowISO, todayISO } from '../../utils/date';
+import { nowISO } from '../../utils/date';
 import { AssetType } from '../../constants/assetTypes';
 
 export interface Asset {
@@ -57,5 +57,41 @@ export function updateAsset(id: number, asset: Partial<NewAsset>): void {
 export function deleteAsset(id: number): void {
   const db = getDb();
   db.runSync('DELETE FROM assets WHERE id = ?', [id]);
+}
+
+/**
+ * Updates current_price and recalculates current_value (units * newPrice)
+ * for every asset row sharing the same ticker. One call covers all lots.
+ */
+export function updatePriceByTicker(ticker: string, newPrice: number): number {
+  const db = getDb();
+  const now = nowISO();
+  const result = db.runSync(
+    `UPDATE assets
+     SET current_price = ?,
+         current_value = CASE WHEN units > 0 THEN units * ? ELSE ? END,
+         updated_at = ?
+     WHERE UPPER(TRIM(ticker)) = UPPER(TRIM(?))`,
+    [newPrice, newPrice, newPrice, now, ticker]
+  );
+  return result.changes;
+}
+
+/**
+ * Same as updatePriceByTicker but matches on name — for assets without a ticker.
+ */
+export function updatePriceByName(name: string, newPrice: number): number {
+  const db = getDb();
+  const now = nowISO();
+  const result = db.runSync(
+    `UPDATE assets
+     SET current_price = ?,
+         current_value = CASE WHEN units > 0 THEN units * ? ELSE ? END,
+         updated_at = ?
+     WHERE (ticker IS NULL OR TRIM(ticker) = '')
+       AND LOWER(TRIM(name)) = LOWER(TRIM(?))`,
+    [newPrice, newPrice, newPrice, now, name]
+  );
+  return result.changes;
 }
 

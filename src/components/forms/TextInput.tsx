@@ -12,7 +12,8 @@ interface FormTextInputProps extends TextInputProps {
 }
 
 export function FormTextInput({
-  label, error, hint, containerStyle, leftIcon, rightIcon, style, ...props
+  label, error, hint, containerStyle, leftIcon, rightIcon, style,
+  onFocus, onBlur, ...props
 }: FormTextInputProps) {
   const { theme } = useTheme();
   const [focused, setFocused] = useState(false);
@@ -45,8 +46,8 @@ export function FormTextInput({
             color: theme.colors.text,
           }, style]}
           placeholderTextColor={theme.colors.textSecondary}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
+          onFocus={(e) => { setFocused(true); onFocus?.(e); }}
+          onBlur={(e) => { setFocused(false); onBlur?.(e); }}
           {...props}
         />
         {rightIcon && <View style={{ marginLeft: 8 }}>{rightIcon}</View>}
